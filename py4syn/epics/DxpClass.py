@@ -114,7 +114,7 @@ class Dxp(ImageHDF):
         r is the ROI"""
         channel = kwargs['channel']
         c = int(channel[CHANNELPOSITION]) - 1
-        if(len(channel) > ROIPOSITION + 1):
+        if(len(channel) > ROIPOSITION):
             r = int(channel[ROIPOSITION])
             return self.pvDxpRois[c][r].get()
         else:
