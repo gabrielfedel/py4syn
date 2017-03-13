@@ -112,10 +112,11 @@ class Dxp(ImageHDF):
         """Return intensity
         channel is on format mcaC.Rr, where C is  the channel and
         r is the ROI"""
-        channel = kwargs['channel']
-        c = int(channel[CHANNELPOSITION]) - 1
-        if(len(channel) > ROIPOSITION):
-            r = int(channel[ROIPOSITION])
+        # channel = [mcaC,Rr] or channel = [mcaC]
+        channel = kwargs['channel'].split(".")
+        c = int(channel[0][-1])
+        if(len(channel) > 1):
+            r = int(channel[1][-1])
             return self.pvDxpRois[c][r].get()
         else:
             self.saveSpectrum(c, **kwargs)

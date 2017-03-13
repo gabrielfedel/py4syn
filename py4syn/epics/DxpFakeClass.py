@@ -58,9 +58,12 @@ class DxpFake(ImageHDF):
         """Return intensity
         channel is on format mcaC.Rr, where C is  the channel and
         r is the ROI"""
-        channel = kwargs['channel']
-        c = int(channel[3]) - 1
-        if(len(channel) > 4):
+        channel = kwargs['channel'].split(".")
+        print(channel)
+        c = int(channel[0][-1])
+        if(len(channel) > 1):
+            r = int(channel[1][-1])
+            print("c ", c, "r", r)
             return np.random.rand()
         else:
             self.saveSpectrum(c, **kwargs)
