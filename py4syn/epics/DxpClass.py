@@ -209,5 +209,5 @@ class Dxp(ImageHDF):
         if self.image is None:
             self.prefix = self.dxpType + str(self.ch)
 
-        super.setNormValue(value)
+        super().setNormValue(value)
 
