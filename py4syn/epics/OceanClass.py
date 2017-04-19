@@ -56,12 +56,9 @@ class OceanOpticsSpectrometer(ImageHDF):
 
         # acquisition mode
         self.pvAcMode = PV(pv+":AcquisitionMode")
-        # set to single mode
-        self.pvAcMode.put("Single")
 
         # axis Spectra
-        pvAxis = PV(pv + ":SpectraAxis")
-        self.axis = pvAxis.get(as_numpy=True)[:self.numPoints]
+        self.pvAxis = PV(pv + ":SpectraAxis")
 
         # regions of interest
         self.ROIS = []
@@ -114,6 +111,12 @@ class OceanOpticsSpectrometer(ImageHDF):
 
     def saveSpectrum(self, **kwargs):
         ''' save the spectrum intensity in a mca file or an hdf file '''
+        # set to single mode
+        self.pvAcMode.put("Single")
+
+        # get axis
+        self.axis = self.pvAxis.get(as_numpy=True)[:self.numPoints]
+
         dark = self.pvDarkCorrection.get()
 
         # the spectra come from different pv if use darkcorrection
