@@ -26,7 +26,7 @@ class DxpFake(ImageHDF):
         """ Constructor
         responseTimeout : how much time to wait dxp answer
         """
-        super().__init__(mnemonic, NUMPOINTS, output, dxpType)
+        super().__init__(mnemonic, NUMPOINTS, output, dxpType, hdffmt = 'smak')
         self.acquiring = False
         self.rois = numberOfRois
 
@@ -123,7 +123,7 @@ class DxpFake(ImageHDF):
     def close(self):
         pass
 
-    def startCollectImage(self, rows=0, cols=0):
+    def startCollectImage(self, rows=0, cols=0, xdata = [], ydata = []):
         """Start to collect an image
         When collect an image, the points will be  saved on a hdf file"""
-        super().startCollectImage("int32", rows, cols)
+        super().startCollectImage("int32", rows, cols, xdata, ydata)
