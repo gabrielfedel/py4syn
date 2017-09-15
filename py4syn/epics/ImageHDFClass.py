@@ -17,9 +17,11 @@ from py4syn.epics.ICountable import ICountable
 
 class ImageHDF(StandardDevice, ICountable):
     # CONSTRUCTOR OF ImageHDF CLASS
-    def __init__(self, mnemonic, numPoints, output, prefix):
+    def __init__(self, mnemonic, numPoints, output, prefix, hdffmt = 'pymca'):
         """ Constructor
         prefix: prefix for filenames
+        hdffmt: defines what hdf format will be used:
+            pymca or smak
         """
         super().__init__(mnemonic)
 
@@ -30,6 +32,7 @@ class ImageHDF(StandardDevice, ICountable):
         self.prefix = prefix
         self.spectrum = None
         self.fileName = ''
+        self.hdffmt = hdffmt
 
     def nameFile(self, output, prefix, suffix):
         '''Generate correct name to file
@@ -64,37 +67,65 @@ class ImageHDF(StandardDevice, ICountable):
                 # if is an odd line
                 if (self.col % 2 != 0):
                     self.row = -1*(self.row+1)
-            self.image[self.col, self.row, :] = self.spectrum
+            if self.hdffmt == 'pymca':
+                self.image[self.col, self.row, :] = self.spectrum
+            elif self.hdffmt == 'smak':
+               self.image[self.col, self.row, 2:self.numPoints+2] = self.spectrum
             self.fileResult.flush()
 
             self.lastPos += 1
 
-    def startCollectImage(self, dtype, rows=0, cols=0):
+    def startCollectImage(self, dtype, rows=0, cols=0, xdata = [], ydata = []):
         """Start to collect an image
-        When collect an image, the points will be  saved on a hdf file"""
+        When collect an image, the points will be  saved on a hdf file
+            xdata, ydata: position on axis x and y for image
+            used by smak format
+        """
         self.rows = rows
         self.cols = cols
         # create HDF file
-        self.fileName = self.nameFile(self.output, self.prefix, "hdf")
+        self.fileName = self.nameFile(self.output, self.prefix, "hdf5")
         self.fileResult = h5py.File(self.fileName)
-
-        # TODO: review this
-        lineShape = (1, self.rows, self.numPoints)
-        self.image = self.fileResult.create_dataset(
-                     'data',
-                     shape=(self.cols, self.rows, self.numPoints),
-                     dtype=dtype,
-                     chunks=lineShape)
-
-        # create "image" normalized
-        self.imageNorm = self.fileResult.create_dataset(
-                     'data_norm',
-                     shape=(self.cols, self.rows, self.numPoints),
-                     dtype='float32',
-                     chunks=lineShape)
 
         # last collected point
         self.lastPos = 0
+
+        # TODO: review this
+        lineShape = (1, self.rows, self.numPoints)
+        if self.hdffmt == 'pymca':
+            self.image = self.fileResult.create_dataset(
+                         'data',
+                         shape=(self.cols, self.rows, self.numPoints),
+                         dtype=dtype,
+                         chunks=lineShape)
+
+            # create "image" normalized
+            self.imageNorm = self.fileResult.create_dataset(
+                         'data_norm',
+                         shape=(self.cols, self.rows, self.numPoints),
+                         dtype='float32',
+                         chunks=lineShape)
+            return
+        if self.hdffmt == 'smak':
+            self.fileResult.create_group('main')
+            main = self.fileResult['main']
+            main.attrs['channels'] = self.numPoints
+            labels = []
+            for m in range(0, self.numPoints):
+                labels.append(self.prefix + '_CH' + str(m))
+            main.attrs['labels'] = np.array(labels).astype('|S10')
+            # last dimension is + 2 to store xdata and ydata 
+            self.image = main.create_dataset('mapdata',
+                         shape=(self.cols, self.rows, self.numPoints + 2),
+                         dtype='float32',
+                         chunks=lineShape)
+            print('xdata', xdata)
+            main['mapdata'][:,:,0] = xdata.repeat(self.cols).reshape(self.rows, self.cols).T
+            main['mapdata'][:,:,1] = ydata.repeat(self.rows).reshape(self.cols, self.rows)
+            main.create_dataset('xdata', data = xdata)
+            main.create_dataset('ydata', data = ydata)
+
+            self.fileResult.flush()
 
     def stopCollectImage(self):
         """Stop collect image"""
